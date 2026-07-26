@@ -26,6 +26,10 @@ FORBIDDEN = [
     "У Дмитрия",
     "у Дмитрия",
     "Работа со мной",
+    "разбор со мной",
+    "Разобрать со мной",
+    "прислать попытку",
+    "до получения канонической статьи",
     "статья Дмитрия",
     "статьи Дмитрия",
     "3–9 августа",
@@ -68,6 +72,8 @@ def main() -> int:
         for forbidden in FORBIDDEN:
             if forbidden in text:
                 errors.append(f"{path.relative_to(ROOT)}: forbidden source-specific text {forbidden!r}")
+        if re.search(r"(?m)^\d+\.\s+\d+\\\.\s+", text):
+            errors.append(f"{path.relative_to(ROOT)}: duplicated ordered-list numbering")
         validate_links(path, text, errors)
 
     if errors:

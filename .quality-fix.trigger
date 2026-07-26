@@ -1,1 +1,0 @@
-polish generated course content
