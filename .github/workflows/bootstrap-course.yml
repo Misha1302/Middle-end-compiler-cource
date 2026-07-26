@@ -1,0 +1,45 @@
+name: Bootstrap course repository
+
+on:
+  push:
+    branches:
+      - agent/publish-middle-end-course
+    paths:
+      - ".bootstrap.trigger"
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out publication branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/publish-middle-end-course
+          fetch-depth: 0
+
+      - name: Verify and expand course archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_sha256="7c5804afeffb68bf644d850fa6dd1e0da77b73149f7bb0fff77ce17dca6c78aa"
+          cat .course-bootstrap.part* | base64 --decode > /tmp/course.tar.gz
+          actual_sha256="$(sha256sum /tmp/course.tar.gz | awk '{print $1}')"
+          test "$actual_sha256" = "$expected_sha256"
+          tar -tzf /tmp/course.tar.gz >/dev/null
+          tar -xzf /tmp/course.tar.gz
+          # The final CI workflow is added after this one-shot publication step.
+          rm -f .github/workflows/ci.yml
+          rm -f .course-bootstrap.part* .bootstrap.trigger
+
+      - name: Commit published course
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: publish middle-end compiler course"
+          git push origin HEAD:agent/publish-middle-end-course
