@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install package and documentation tools
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -r requirements-docs.txt
+          python -m pip install -e .
+      - name: Validate course structure and links
+        run: python scripts/validate_course.py
+      - name: Run teaching-tool tests
+        run: python -m unittest discover -s tests -v
+      - name: Build documentation
+        run: mkdocs build --strict
