@@ -17,3 +17,12 @@ python -m unittest discover -s tests -v
 - не создаёт ли изменение противоречие с `docs/ir-contract.md`.
 
 Не добавляйте ответы прямо в страницы занятий: эталоны хранятся отдельно в `docs/practice/answers-and-rubrics.md`.
+
+
+## Лицензия вклада и DCO
+
+Отправляя вклад, вы соглашаетесь, что он может распространяться под лицензией соответствующей категории репозитория. Каждый commit должен содержать строку `Signed-off-by`, подтверждающую [Developer Certificate of Origin 1.1](DCO):
+
+```bash
+git commit -s
+```

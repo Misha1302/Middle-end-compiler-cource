@@ -10,14 +10,29 @@ DOCS = ROOT / "docs"
 REQUIRED = [
     ROOT / "README.md",
     ROOT / "mkdocs.yml",
+    ROOT / "LICENSE",
+    ROOT / "LICENSE-CODE",
+    ROOT / "LICENSE-DOCS.md",
     DOCS / "index.md",
     DOCS / "course-map.md",
     DOCS / "ir-contract.md",
     DOCS / "practice/answers-and-rubrics.md",
 ]
 
+REQUIRED_CONTENT = {
+    DOCS / "ir-contract.md": (
+        "`readonly` запрещает запись, но разрешает чтение памяти",
+    ),
+    DOCS / "modules/05-idom-tree-and-df.md": (
+        "который доминируется всеми остальными строгими доминаторами",
+    ),
+    DOCS / "modules/16-licm.md": (
+        "Доказано ли, что раннее выполнение не породит исключение/ошибку",
+    ),
+}
+
 LINK_PATTERN = re.compile(r"!?\[[^\]]*\]\(([^)]+)\)")
-HTML_SRC_PATTERN = re.compile(r"<(?:img|a)\b[^>]*(?:src|href)=['\"]([^'\"]+)['\"]", re.I)
+HTML_SRC_PATTERN = re.compile(r"<(?:img|a)\b[^>]*(?:src|href)=[\"']([^\"']+)[\"']", re.I)
 FORBIDDEN = [
     "/mnt/data/",
     "../assets/diagrams/",
@@ -35,7 +50,18 @@ FORBIDDEN = [
     "3–9 августа",
     "15–24 июля",
     "Резерв: 2–6 августа",
+    "не доминируемый другим строгим доминатором",
+    "Может ли раннее выполнение породить исключение/ошибку",
+    "пометке pure/readonly",
 ]
+
+
+def is_within_repository(path: Path) -> bool:
+    try:
+        path.relative_to(ROOT)
+    except ValueError:
+        return False
+    return True
 
 
 def validate_links(path: Path, text: str, errors: list[str]) -> None:
@@ -45,6 +71,11 @@ def validate_links(path: Path, text: str, errors: list[str]) -> None:
         if not target or target.startswith(("http://", "https://", "mailto:", "#")):
             continue
         resolved = (path.parent / target).resolve()
+        if not is_within_repository(resolved):
+            errors.append(
+                f"{path.relative_to(ROOT)}: local target escapes repository: {link}"
+            )
+            continue
         if not resolved.exists():
             errors.append(f"{path.relative_to(ROOT)}: missing local target {link}")
 
@@ -63,16 +94,33 @@ def main() -> int:
         text = path.read_text(encoding="utf-8")
         if not text.startswith(f"# Занятие {index}."):
             errors.append(f"{path.relative_to(ROOT)}: incorrect top-level title")
-        for marker in ("Сначала простыми словами", "Обязательная практика", "Три вопроса", "```mermaid"):
+        for marker in (
+            "Сначала простыми словами",
+            "Обязательная практика",
+            "Три вопроса",
+            "```mermaid",
+        ):
             if marker not in text:
                 errors.append(f"{path.relative_to(ROOT)}: missing section {marker!r}")
+
+    for path, snippets in REQUIRED_CONTENT.items():
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for snippet in snippets:
+            if snippet not in text:
+                errors.append(
+                    f"{path.relative_to(ROOT)}: missing correctness regression marker {snippet!r}"
+                )
 
     for path in [ROOT / "README.md", *DOCS.rglob("*.md")]:
         text = path.read_text(encoding="utf-8")
         for forbidden in FORBIDDEN:
             if forbidden in text:
-                errors.append(f"{path.relative_to(ROOT)}: forbidden source-specific text {forbidden!r}")
-        if re.search(r"(?m)^\d+\.\s+\d+\\\.\s+", text):
+                errors.append(
+                    f"{path.relative_to(ROOT)}: forbidden source-specific or incorrect text {forbidden!r}"
+                )
+        if re.search(r"(?m)^\d+\.\s+\d+\\.\s+", text):
             errors.append(f"{path.relative_to(ROOT)}: duplicated ordered-list numbering")
         validate_links(path, text, errors)
 

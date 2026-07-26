@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Teaching utilities for a middle-end compiler course"
 requires-python = ">=3.11"
 authors = [{name = "Mikhail Razakov"}]
+license = {text = "MIT"}
 
 [project.scripts]
 course-cfg = "middle_end_course.cli:main"

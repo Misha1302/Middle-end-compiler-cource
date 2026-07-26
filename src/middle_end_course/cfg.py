@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Iterable, Mapping
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ControlFlowGraph:
     """A small immutable CFG intended for manual experiments and tests."""
 
@@ -17,8 +18,14 @@ class ControlFlowGraph:
         entry: str,
         successors: Mapping[str, Iterable[str]],
     ) -> "ControlFlowGraph":
-        normalized = {node: tuple(targets) for node, targets in successors.items()}
-        graph = cls(entry=entry, successors=normalized)
+        normalized = {
+            node: tuple(targets)
+            for node, targets in successors.items()
+        }
+        graph = cls(
+            entry=entry,
+            successors=MappingProxyType(normalized),
+        )
         graph.validate()
         return graph
 
@@ -121,20 +128,26 @@ class ControlFlowGraph:
     def natural_loop(self, header: str, latch: str) -> frozenset[str]:
         if header not in self.nodes or latch not in self.nodes:
             raise ValueError("header and latch must be declared nodes")
+
+        reachable = self.reachable()
+        if header not in reachable or latch not in reachable:
+            raise ValueError("header and latch must be reachable from entry")
         if header not in self.successors[latch]:
             raise ValueError(f"{latch!r} -> {header!r} is not an edge")
+
         dom = self.dominators()
-        if header not in dom.get(latch, frozenset()):
+        if header not in dom[latch]:
             raise ValueError("the edge is not a back edge: header does not dominate latch")
 
         preds = self.predecessors()
         loop = {header, latch}
-        worklist = [latch]
+        worklist = [] if header == latch else [latch]
         while worklist:
             node = worklist.pop()
             for pred in preds[node]:
-                if pred not in loop:
-                    loop.add(pred)
-                    if pred != header:
-                        worklist.append(pred)
+                if pred not in reachable or pred in loop:
+                    continue
+                loop.add(pred)
+                if pred != header:
+                    worklist.append(pred)
         return frozenset(loop)
