@@ -1,0 +1,60 @@
+name: Commit validated remediation content
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  commit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/remediate-review-findings
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Apply and repair generated content
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path('.github/workflows/remediate-review.yml').read_text(encoding='utf-8').splitlines()
+          start = next(i for i, line in enumerate(source) if "cat > /tmp/remediate.py <<'PY'" in line) + 1
+          end = next(i for i in range(start, len(source)) if source[i].strip() == 'PY')
+          prefix = '          '
+          Path('/tmp/remediate.py').write_text('\n'.join(line[len(prefix):] if line.startswith(prefix) else line for line in source[start:end]) + '\n', encoding='utf-8')
+          PY
+          python /tmp/remediate.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/validate_course.py')
+          lines = path.read_text(encoding='utf-8').splitlines()
+          for index, line in enumerate(lines):
+              if line.startswith('HTML_SRC_PATTERN = '):
+                  lines[index] = 'HTML_SRC_PATTERN = re.compile(r"<(?:img|a)\\b[^>]*(?:src|href)=[\\\"\u0027]([^\\\"\u0027]+)[\\\"\u0027]", re.I)'
+                  break
+          else:
+              raise RuntimeError('HTML_SRC_PATTERN line not found')
+          path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
+          rm -rf site src/*.egg-info tests/__pycache__ scripts/__pycache__ src/middle_end_course/__pycache__
+      - name: Validate content
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -r requirements-docs.txt
+          python -m pip install -e .
+          python scripts/validate_course.py
+          python -m unittest discover -s tests -v
+          mkdocs build --strict
+      - name: Commit only code and course content
+        run: |
+          rm -rf site src/*.egg-info tests/__pycache__ scripts/__pycache__ src/middle_end_course/__pycache__
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CONTRIBUTING.md DCO LICENSE LICENSE-CODE LICENSE-DOCS.md NOTICE.md README.md pyproject.toml scripts tests src docs
+          git commit -m "fix: remediate course correctness findings"
+          git push origin HEAD:agent/remediate-review-findings
