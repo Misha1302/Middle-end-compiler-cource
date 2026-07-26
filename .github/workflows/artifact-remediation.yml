@@ -1,0 +1,57 @@
+name: Export remediation artifact
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/remediate-review-findings
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Apply remediation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path('.github/workflows/remediate-review.yml').read_text(encoding='utf-8').splitlines()
+          start = next(i for i, line in enumerate(source) if "cat > /tmp/remediate.py <<'PY'" in line) + 1
+          end = next(i for i in range(start, len(source)) if source[i].strip() == 'PY')
+          prefix = '          '
+          Path('/tmp/remediate.py').write_text('\n'.join(line[len(prefix):] if line.startswith(prefix) else line for line in source[start:end]) + '\n', encoding='utf-8')
+          PY
+          python /tmp/remediate.py
+      - name: Run checks and capture output
+        shell: bash
+        run: |
+          set +e
+          python -m pip install -r requirements-docs.txt > check-install-docs.log 2>&1
+          echo $? > check-install-docs.status
+          python -m pip install -e . > check-install-package.log 2>&1
+          echo $? > check-install-package.status
+          python scripts/validate_course.py > check-validator.log 2>&1
+          echo $? > check-validator.status
+          python -m unittest discover -s tests -v > check-tests.log 2>&1
+          echo $? > check-tests.status
+          mkdocs build --strict > check-mkdocs.log 2>&1
+          echo $? > check-mkdocs.status
+          tar --exclude=.git --exclude=site -czf remediation-tree.tar.gz .
+      - name: Upload diagnostic bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remediation-diagnostic
+          path: |
+            remediation-tree.tar.gz
+            check-*.log
+            check-*.status
+          if-no-files-found: error
+          retention-days: 1
