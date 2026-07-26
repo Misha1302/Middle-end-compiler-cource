@@ -1,0 +1,52 @@
+name: Run review remediation safely
+
+on:
+  push:
+    branches: [agent/remediate-review-findings]
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/remediate-review-findings
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Extract and apply remediation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path('.github/workflows/remediate-review.yml').read_text(encoding='utf-8').splitlines()
+          start = next(i for i, line in enumerate(source) if "cat > /tmp/remediate.py <<'PY'" in line) + 1
+          end = next(i for i in range(start, len(source)) if source[i].strip() == 'PY')
+          body = source[start:end]
+          prefix = '          '
+          script = '\n'.join(
+              line[len(prefix):] if line.startswith(prefix) else line
+              for line in body
+          ) + '\n'
+          Path('/tmp/remediate.py').write_text(script, encoding='utf-8')
+          PY
+          python /tmp/remediate.py
+      - name: Install and validate
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -r requirements-docs.txt
+          python -m pip install -e .
+          python scripts/validate_course.py
+          python -m unittest discover -s tests -v
+          mkdocs build --strict
+      - name: Commit remediation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "fix: remediate correctness and publication review findings"
+          git push origin HEAD:agent/remediate-review-findings
