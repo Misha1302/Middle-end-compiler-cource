@@ -1,8 +1,9 @@
 name: Deploy documentation
 
+# Deployment is intentionally manual until GitHub Pages is enabled for the
+# repository in Settings -> Pages -> Build and deployment -> GitHub Actions.
+# The regular CI still builds the complete MkDocs site on every push and PR.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

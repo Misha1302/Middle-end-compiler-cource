@@ -12,7 +12,7 @@
 
 ## Быстрый старт
 
-1. Откройте [онлайн-версию курса](https://misha1302.github.io/Middle-end-compiler-cource/) или [страницу курса в репозитории](docs/index.md).
+1. Откройте [страницу курса в репозитории](docs/index.md).
 2. Прочитайте [правила прохождения](docs/getting-started.md).
 3. Зафиксируйте [контракт учебного IR](docs/ir-contract.md).
 4. Начните с [занятия 1](docs/modules/01-pipeline-and-diagnostic.md).
@@ -45,6 +45,18 @@ PYTHONPATH=src python -m middle_end_course.cli examples/diamond.json
 python scripts/validate_course.py
 python -m unittest discover -s tests -v
 ```
+
+## Публикация GitHub Pages
+
+Основной CI на каждом push и pull request строго собирает сайт через MkDocs. Сам deployment запускается вручную, чтобы не создавать ложный красный статус до включения GitHub Pages.
+
+Перед первым deployment:
+
+1. Откройте `Settings → Pages`.
+2. В `Build and deployment → Source` выберите `GitHub Actions`.
+3. Откройте `Actions → Deploy documentation → Run workflow`.
+
+После успешной первой публикации автоматический запуск на `push` можно вернуть в `.github/workflows/pages.yml`.
 
 ## Границы
 
