@@ -1,8 +1,8 @@
 site_name: Middle-end Compiler Course
 site_description: Практический курс по CFG, доминированию, SSA и оптимизациям middle-end
-repo_url: https://github.com/Misha1302/Middle-end-compiler-cource
-repo_name: Misha1302/Middle-end-compiler-cource
-site_url: https://misha1302.github.io/Middle-end-compiler-cource/
+repo_url: https://github.com/Misha1302/Middle-end-compiler-course
+repo_name: Misha1302/Middle-end-compiler-course
+site_url: https://misha1302.github.io/Middle-end-compiler-course/
 
 theme:
 
