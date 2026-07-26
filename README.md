@@ -12,7 +12,7 @@
 
 ## Быстрый старт
 
-1. Откройте [страницу курса](docs/index.md).
+1. Откройте [онлайн-версию курса](https://misha1302.github.io/Middle-end-compiler-cource/) или [страницу курса в репозитории](docs/index.md).
 2. Прочитайте [правила прохождения](docs/getting-started.md).
 3. Зафиксируйте [контракт учебного IR](docs/ir-contract.md).
 4. Начните с [занятия 1](docs/modules/01-pipeline-and-diagnostic.md).
@@ -52,4 +52,4 @@ python -m unittest discover -s tests -v
 
 ## Правовой статус
 
-Материалы опубликованы для чтения и обучения. Отдельная открытая лицензия пока не назначена; подробности — в [NOTICE.md](NOTICE.md).
+Код опубликован под MIT, а учебные материалы — под CC BY 4.0. Подробности — в [LICENSE](LICENSE) и [NOTICE.md](NOTICE.md).

@@ -2,6 +2,6 @@
 
 Copyright © 2026 Mikhail Razakov.
 
-The repository is publicly readable for educational use. No separate open-source or Creative Commons license has been granted yet. Unless applicable law permits otherwise, redistribution, modification, or commercial reuse requires permission from the copyright holder.
-
-Third-party names and references remain the property of their respective owners.
+- Code, tests, scripts, workflows and configuration files are available under the MIT License; see `LICENSE-CODE`.
+- Course text and original diagrams are available under CC BY 4.0; see `LICENSE-DOCS.md`.
+- Third-party quotations, names, trademarks and linked materials remain subject to their respective rights.

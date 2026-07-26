@@ -1,0 +1,9 @@
+# Licensing
+
+This repository uses separate licenses for code and educational content:
+
+- Python source code, tests, scripts, workflows and configuration files are licensed under the MIT License. See `LICENSE-CODE`.
+- Course text and original diagrams in `docs/`, together with `README.md`, are licensed under the Creative Commons Attribution 4.0 International License. See `LICENSE-DOCS.md`.
+- Third-party quotations, names and linked materials remain subject to their respective rights.
+
+Unless a file states otherwise, use the license assigned to its category above.
