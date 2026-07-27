@@ -4,7 +4,8 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - ".polish/part03"
+      - ".polish/part02"
+      - ".github/workflows/final-language-polish.yml"
 
 permissions:
   contents: write
@@ -25,8 +26,8 @@ jobs:
           set -euo pipefail
           shopt -s nullglob
           parts=(.polish/part*)
-          if (( ${#parts[@]} != 4 )); then
-            echo "Expected 4 parts, got ${#parts[@]}" >&2
+          if (( ${#parts[@]} != 3 )); then
+            echo "Expected 3 stored parts, got ${#parts[@]}" >&2
             exit 1
           fi
           cat "${parts[@]}" | base64 --decode > /tmp/final-polish.tar.gz
