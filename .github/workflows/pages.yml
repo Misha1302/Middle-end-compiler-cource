@@ -3,11 +3,6 @@ name: Deploy documentation
 on:
   push:
     branches: [main]
-    paths:
-      - "docs/**"
-      - "mkdocs.yml"
-      - "requirements-docs.txt"
-      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:

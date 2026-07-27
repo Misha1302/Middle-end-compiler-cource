@@ -1,67 +1,44 @@
 # Middle-end Compiler Course
 
-Практический русскоязычный курс по устройству **middle-end компилятора**: от базовых блоков и CFG до SSA, ациклических оптимизаций и преобразований циклов.
+Самостоятельный русскоязычный курс по middle-end компилятора: от basic blocks и CFG до SSA, ациклических и цикловых оптимизаций.
 
 ## Что внутри
 
-- 20 последовательных занятий с причинной моделью, разобранным примером и задачами A/B/C;
-- единый контракт учебного IR;
-- комплексные работы и два варианта пробного зачёта;
-- эталоны, критерии проверки, словарь и карточки;
-- небольшой Python-инструментарий для экспериментов с CFG, dominators, IDom, DF и natural loops;
+- 20 занятий в порядке «проблема → определения → модель → полная трасса → правило → практика»;
+- 100 терминов с готовым простым и точным объяснением;
+- явные prerequisite bridges по semantic analysis, DFS/SCC, canonical loops и loop-carried dependences;
+- локальные ответы к задачам и банк transfer-задач;
+- Python-инструмент, который показывает финальные анализы и промежуточные состояния.
 
-## Быстрый старт
+## Сайт
 
-1. Откройте [страницу курса в репозитории](docs/index.md).
-2. Прочитайте [правила прохождения](docs/getting-started.md).
-3. Зафиксируйте [контракт учебного IR](docs/ir-contract.md).
-4. Начните с [занятия 1](docs/modules/01-pipeline-and-diagnostic.md).
+https://misha1302.github.io/Middle-end-compiler-cource/
 
-Локальный сайт:
+## Локальный запуск
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
-pip install -r requirements-docs.txt
+python -m pip install -e .
+python -m pip install -r requirements-docs.txt
 mkdocs serve
 ```
 
-Инструмент для анализа CFG:
+## Учебный анализатор
 
 ```bash
-python -m middle_end_course.cli examples/diamond.json
+course-cfg dominators examples/diamond.json --trace
+course-cfg natural-loop examples/loop.json --header B1 --latch B3 --trace
 ```
 
-Для запуска без установки пакета:
+Старый вызов `course-cfg examples/diamond.json` сохранён как сокращение для `summary`.
 
-```bash
-PYTHONPATH=src python -m middle_end_course.cli examples/diamond.json
-```
-
-Проверка репозитория:
+## Проверка
 
 ```bash
 python scripts/validate_course.py
 python -m unittest discover -s tests -v
+mkdocs build --strict
 ```
 
-## Публикация GitHub Pages
-
-Основной CI на каждом push и pull request строго собирает сайт через MkDocs. Сам deployment запускается вручную, чтобы не создавать ложный красный статус до включения GitHub Pages.
-
-Перед первым deployment:
-
-1. Откройте `Settings → Pages`.
-2. В `Build and deployment → Source` выберите `GitHub Actions`.
-3. Откройте `Actions → Deploy documentation → Run workflow`.
-
-После успешной первой публикации автоматический запуск на `push` можно вернуть в `.github/workflows/pages.yml`.
-
-## Границы
-
-Это курс по **middle-end**, а не полный курс по разработке компилятора с нуля. Lexer, parser, type checker, instruction selection и register allocation обозначены в общей архитектуре, но не являются основными темами. Раздел про Хавлака пока использует учебную схему и явно помечен как такой.
-
-## Правовой статус
-
-Код опубликован под MIT, а учебные материалы — под CC BY 4.0. Подробности — в [LICENSE](LICENSE) и [NOTICE.md](NOTICE.md).
+Код опубликован под MIT, учебные материалы — под CC BY 4.0.
