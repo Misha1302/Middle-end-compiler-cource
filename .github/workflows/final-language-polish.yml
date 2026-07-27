@@ -1,0 +1,98 @@
+name: Apply final Russian polish
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".polish/part03"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Reconstruct and verify bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          parts=(.polish/part*)
+          if (( ${#parts[@]} != 4 )); then
+            echo "Expected 4 parts, got ${#parts[@]}" >&2
+            exit 1
+          fi
+          cat "${parts[@]}" | base64 --decode > /tmp/final-polish.tar.gz
+          echo "e0bc7a0b7cb29a67c62c1391729b7a558bc1dda1344de180c88984633ca87e10  /tmp/final-polish.tar.gz" | sha256sum -c -
+          gzip -t /tmp/final-polish.tar.gz
+
+      - name: Extract allowlisted files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile
+
+          allowed = {
+              'README.md',
+              'docs/modules/05-idom-tree-and-df.md',
+              'docs/modules/12-checkpoint-1.md',
+              'docs/modules/14-havlak-and-loop-tree.md',
+              'docs/modules/19-mock-exam-1.md',
+              'docs/modules/20-final-repair.md',
+              'docs/course-map.md',
+              'docs/practice/transfer-bank.md',
+              'docs/resources/glossary.md',
+              'docs/resources/flashcards.md',
+          }
+          root = Path.cwd().resolve()
+          with tarfile.open('/tmp/final-polish.tar.gz', 'r:gz') as tf:
+              members = tf.getmembers()
+              names = {m.name.removeprefix('./') for m in members if m.isfile()}
+              if names != allowed:
+                  raise SystemExit(f'unexpected bundle files: {sorted(names ^ allowed)}')
+              for member in members:
+                  name = member.name.removeprefix('./')
+                  if name in {'', '.'}:
+                      continue
+                  destination = (root / name).resolve()
+                  if root not in destination.parents:
+                      raise SystemExit(f'unsafe path: {member.name!r}')
+                  if member.issym() or member.islnk():
+                      raise SystemExit(f'links forbidden: {member.name!r}')
+              tf.extractall(root, filter='data')
+          PY
+          rm -rf .polish
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e .
+          python -m pip install -r requirements-docs.txt
+
+      - name: Validate and test
+        run: |
+          python scripts/validate_course.py
+          python -m unittest discover -s tests -v
+          python -m compileall -q src scripts tests
+          mkdocs build --strict --site-dir site
+
+      - name: Commit verified polish
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md docs
+          git add -u .polish || true
+          git commit -m "docs: remove remaining Russian calques and typos"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
