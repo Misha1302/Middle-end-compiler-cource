@@ -56,7 +56,7 @@ jobs:
                   raise SystemExit('bundle is empty')
               for member in members:
                   normalized = member.name.removeprefix('./')
-                  if not normalized:
+                  if normalized in {'', '.'}:
                       continue
                   first = normalized.split('/', 1)[0]
                   if first not in allowed_roots:
