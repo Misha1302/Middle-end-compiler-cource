@@ -1,28 +1,28 @@
 # Карта курса и зависимости
 
-| № | Тема | Обязательный вход | Наблюдаемый результат |
+| № | Тема | Что нужно знать перед занятием | Что ты сможешь сделать после занятия |
 |---:|---|---|---|
-| 1 | [Путь через компилятор](modules/01-pipeline-and-diagnostic.md) | базовое программирование | объяснены frontend/middle-end/backend и semantic analysis |
-| 2 | [Лидеры и блоки](modules/02-leaders-and-basic-blocks.md) | линейный IR | разбиение на maximal basic blocks |
-| 3 | [CFG](modules/03-building-cfg.md) | блоки/terminators | edges, pred/succ, reachability |
-| 4 | [Dominance](modules/04-dominators.md) | CFG | полная fixed-point trace |
-| 5 | [IDom и DF](modules/05-idom-tree-and-df.md) | Dom sets | отдельные CFG/dom-tree и DF trace |
-| 6 | [SSA placement](modules/06-ssa-and-phi.md) | DF, binding/storage/value | iterated-DF worklist и φ contract |
-| 7 | [SSA renaming](modules/07-ssa-renaming.md) | placement/dom tree | stack trace и verifier |
-| 8 | [Def-use и LVN](modules/08-dependencies-and-lvn.md) | SSA/effects | dependence graph и VN table |
-| 9 | [Константы](modules/09-constants.md) | def-use | simple propagation; SCCP отделён |
-| 10 | [DCE/UCE](modules/10-dce-uce-and-pass-order.md) | effects/reachability | cleanup pipeline |
-| 11 | [Inlining](modules/11-inlining.md) | CFG/SSA rewrite | clone/rename/return merge |
-| 12 | [Комплексная №1](modules/12-checkpoint-1.md) | 1–11 | сквозной ациклический pipeline |
-| 13 | [Loop anatomy](modules/13-loop-concepts.md) | DFS/SCC, dominance | natural/reducible/irreducible examples |
-| 14 | [Хавлак](modules/14-havlak-and-loop-tree.md) | DFS/SCC/loops | pool/Union-Find trace |
-| 15 | [IV](modules/15-induction-variables.md) | loop SSA | recurrence и strength reduction |
-| 16 | [LICM](modules/16-licm.md) | canonical loop/effects | legality matrix и preheader repair |
-| 17 | [Loop transformations](modules/17-loop-transformations.md) | loop-carried dependence | before/after + legality verdict |
-| 18 | [Комплексная №2](modules/18-checkpoint-2.md) | 13–17 | полный loop pipeline |
-| 19 | [Пробный зачёт](modules/19-mock-exam-1.md) | весь курс | независимая оценка |
-| 20 | [Финальный ремонт](modules/20-final-repair.md) | журнал ошибок | два пробела закрыты transfer-задачами |
+| 1 | [Путь программы через компилятор](modules/01-pipeline-and-diagnostic.md) | основы программирования | объяснить назначение передней, средней и задней частей компилятора, а также семантического анализа |
+| 2 | [Лидеры и базовые блоки](modules/02-leaders-and-basic-blocks.md) | линейный IR | разбить инструкции на максимальные базовые блоки |
+| 3 | [Построение CFG](modules/03-building-cfg.md) | базовые блоки и терминаторы | построить рёбра CFG, множества предшественников и последователей, определить достижимость |
+| 4 | [Доминирование](modules/04-dominators.md) | CFG | вручную довести вычисление доминаторов до неподвижной точки |
+| 5 | [IDom, дерево доминаторов и DF](modules/05-idom-tree-and-df.md) | множества доминаторов | отдельно построить CFG и дерево доминаторов, затем вычислить фронты доминирования |
+| 6 | [Расстановка φ-функций](modules/06-ssa-and-phi.md) | DF; различие имени, хранилища и значения | разместить φ-функции по итерационному фронту доминирования и проверить их входы |
+| 7 | [Переименование в SSA](modules/07-ssa-renaming.md) | расстановка φ-функций и дерево доминаторов | выполнить пошаговое переименование с помощью стеков версий и проверить результат |
+| 8 | [Связи определений и использований. LVN](modules/08-dependencies-and-lvn.md) | SSA и эффекты операций | построить граф зависимостей и таблицу номеров значений |
+| 9 | [Свёртка и распространение констант](modules/09-constants.md) | связи определений и использований | выполнить обычное распространение констант; SCCP изучается отдельно как углубление |
+| 10 | [DCE, UCE и порядок проходов](modules/10-dce-uce-and-pass-order.md) | эффекты и достижимость | выполнить последовательное исправление CFG, φ-функций и мёртвого кода |
+| 11 | [Встраивание функций](modules/11-inlining.md) | перестроение CFG и SSA | клонировать тело функции, переименовать сущности и объединить пути возврата |
+| 12 | [Комплексная работа №1](modules/12-checkpoint-1.md) | занятия 1–11 | провести полный разбор ациклической части программы |
+| 13 | [Строение циклов](modules/13-loop-concepts.md) | DFS, SCC и доминирование | различать естественные, сводимые и несводимые циклические области |
+| 14 | [Алгоритм Хавлака](modules/14-havlak-and-loop-tree.md) | DFS, SCC и понятия о циклах | выполнить пошаговый разбор рабочего множества и структуры непересекающихся множеств (Union–Find) |
+| 15 | [Индуктивные переменные](modules/15-induction-variables.md) | SSA-форма цикла | вывести рекуррентное соотношение и выполнить снижение стоимости операций |
+| 16 | [LICM](modules/16-licm.md) | каноническая форма цикла и эффекты | проверить допустимость выноса и при необходимости создать предвходной блок |
+| 17 | [Преобразования циклов](modules/17-loop-transformations.md) | межитерационные зависимости | сравнить программу до и после преобразования и обосновать его допустимость |
+| 18 | [Комплексная работа №2](modules/18-checkpoint-2.md) | занятия 13–17 | провести полный разбор цикла и последовательности преобразований |
+| 19 | [Пробный зачёт](modules/19-mock-exam-1.md) | весь курс | независимо оценить готовность и найти первые пробелы |
+| 20 | [Финальный ремонт](modules/20-final-repair.md) | журнал ошибок | закрыть два пробела на новых задачах |
 
 ## Маршрут без скрытых зависимостей
 
-Перед стартом прочитай [предпосылки](prerequisites.md). Если переход к следующей строке требует понятия, которого нет в обязательном материале предыдущих строк, это дефект курса.
+Перед началом прочитай [страницу с обязательными предпосылками](prerequisites.md). Если очередное занятие требует понятия, которого нет ни там, ни в предыдущем обязательном материале, это дефект курса.
