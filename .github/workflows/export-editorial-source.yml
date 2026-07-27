@@ -1,0 +1,32 @@
+name: Export editorial source
+
+on:
+  push:
+    branches:
+      - fix/russian-language-readability
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: fix/russian-language-readability
+      - name: Create source archive
+        run: |
+          set -euo pipefail
+          tar --exclude=.git -czf /tmp/middle-end-course-source.tar.gz .
+          sha256sum /tmp/middle-end-course-source.tar.gz > /tmp/SHA256SUMS
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: editorial-source
+          path: |
+            /tmp/middle-end-course-source.tar.gz
+            /tmp/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 2
