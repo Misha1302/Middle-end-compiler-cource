@@ -19,26 +19,28 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
-
-      - name: Verify stored bundle chunks
-        run: |
-          set -euo pipefail
-          echo "85743b7d5142c5d608f70eb3e60665f00fe3d53751a0b119136b86b5856cf79a  .polish/part00" | sha256sum -c -
-          echo "f15f1865bf7a7138088bf6e1a2333834dc67ed2fe2a05a61e0ea69310fa92a87  .polish/part01" | sha256sum -c -
-          echo "39f60428ab1aeec662e86b5efe37d9146204bd64f2027f2dd7093a0781eb8947  .polish/tail00" | sha256sum -c -
-          echo "275d60fb1769dfd6e36a6383a88125d030dcb8959a7f5bd6f304c010aab34a1c  .polish/tail01" | sha256sum -c -
-          echo "ec15a5858a9d31e28c304649fa0b4be3b79696c8bcb3ff125c866449c1f46222  .polish/tail02" | sha256sum -c -
-          echo "94a1961885ff76a2276893f7b0ed851ca3ed5cab6028c3dfe215f23b4c1cf0b3  .polish/tail03" | sha256sum -c -
-          echo "eec50608aa8fb87368f88dce95db5d200c9280f9dc5e5a9268958f46dfbb8a6b  .polish/tail04" | sha256sum -c -
-          echo "f89f3a8020a1b4c5ba6a0c635b4899794598fe84a7d1fb6f452bc4d067f0d91b  .polish/tail05" | sha256sum -c -
-
+      - name: Verify part00
+        run: echo "85743b7d5142c5d608f70eb3e60665f00fe3d53751a0b119136b86b5856cf79a  .polish/part00" | sha256sum -c -
+      - name: Verify part01
+        run: echo "f15f1865bf7a7138088bf6e1a2333834dc67ed2fe2a05a61e0ea69310fa92a87  .polish/part01" | sha256sum -c -
+      - name: Verify tail00
+        run: echo "39f60428ab1aeec662e86b5efe37d9146204bd64f2027f2dd7093a0781eb8947  .polish/tail00" | sha256sum -c -
+      - name: Verify tail01
+        run: echo "275d60fb1769dfd6e36a6383a88125d030dcb8959a7f5bd6f304c010aab34a1c  .polish/tail01" | sha256sum -c -
+      - name: Verify tail02
+        run: echo "ec15a5858a9d31e28c304649fa0b4be3b79696c8bcb3ff125c866449c1f46222  .polish/tail02" | sha256sum -c -
+      - name: Verify tail03
+        run: echo "94a1961885ff76a2276893f7b0ed851ca3ed5cab6028c3dfe215f23b4c1cf0b3  .polish/tail03" | sha256sum -c -
+      - name: Verify tail04
+        run: echo "eec50608aa8fb87368f88dce95db5d200c9280f9dc5e5a9268958f46dfbb8a6b  .polish/tail04" | sha256sum -c -
+      - name: Verify tail05
+        run: echo "f89f3a8020a1b4c5ba6a0c635b4899794598fe84a7d1fb6f452bc4d067f0d91b  .polish/tail05" | sha256sum -c -
       - name: Reconstruct and verify bundle
         run: |
           set -euo pipefail
           cat .polish/part00 .polish/part01 .polish/tail00 .polish/tail01 .polish/tail02 .polish/tail03 .polish/tail04 .polish/tail05 | base64 --decode > /tmp/final-polish.tar.gz
           echo "e0bc7a0b7cb29a67c62c1391729b7a558bc1dda1344de180c88984633ca87e10  /tmp/final-polish.tar.gz" | sha256sum -c -
           gzip -t /tmp/final-polish.tar.gz
-
       - name: Extract allowlisted files
         run: |
           set -euo pipefail
@@ -62,7 +64,6 @@ jobs:
               tf.extractall(root, filter='data')
           PY
           rm -rf .polish
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools
