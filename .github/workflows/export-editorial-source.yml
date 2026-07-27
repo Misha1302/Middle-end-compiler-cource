@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - ".editorial/part*"
+      - ".editorial/part08"
       - ".github/workflows/export-editorial-source.yml"
 
 permissions:
