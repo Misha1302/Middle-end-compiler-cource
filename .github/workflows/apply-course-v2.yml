@@ -1,0 +1,90 @@
+name: Apply pedagogical course v2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".remediation/course-v2.part*"
+      - ".github/workflows/apply-course-v2.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-course-v2-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  apply-and-verify:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Reconstruct and safely extract bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          parts=(.remediation/course-v2.part*)
+          if (( ${#parts[@]} == 0 )); then
+            echo "Bundle parts already consumed; nothing to apply."
+            exit 0
+          fi
+          cat "${parts[@]}" | tr -d '\r\n' | base64 --decode > /tmp/course-v2.tar.gz
+          gzip -t /tmp/course-v2.tar.gz
+          sha256sum /tmp/course-v2.tar.gz
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile
+
+          archive = Path('/tmp/course-v2.tar.gz')
+          root = Path.cwd().resolve()
+          with tarfile.open(archive, 'r:gz') as tf:
+              members = tf.getmembers()
+              if not members:
+                  raise SystemExit('bundle is empty')
+              for member in members:
+                  destination = (root / member.name).resolve()
+                  if destination != root and root not in destination.parents:
+                      raise SystemExit(f'unsafe archive path: {member.name!r}')
+                  if member.issym() or member.islnk():
+                      raise SystemExit(f'links are not allowed in bundle: {member.name!r}')
+              tf.extractall(root)
+              print(f'extracted {len(members)} members')
+          PY
+          rm -f .remediation/course-v2.part*
+          rmdir .remediation 2>/dev/null || true
+
+      - name: Install package and documentation dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -e .
+          python -m pip install -r requirements-docs.txt
+
+      - name: Validate course structure and pedagogy
+        run: python scripts/validate_course.py
+
+      - name: Run teaching-tool tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build documentation strictly
+        run: mkdocs build --strict
+
+      - name: Commit verified course changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- ':!.github/workflows/apply-course-v2.yml'
+          if git diff --cached --quiet; then
+            echo "No product changes to commit."
+            exit 0
+          fi
+          git commit -m "feat(course): make lessons self-contained and traceable"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
