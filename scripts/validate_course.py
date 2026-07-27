@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,17 +35,73 @@ EXPECTED_MODULES = [
 REQUIRED_SECTIONS = [
     "## Зачем это вообще нужно",
     "## Термины до заданий",
-    "## Первая модель",
-    "## Разобранный пример: состояние за состоянием",
+    "## Ключевая схема",
+    "## Пошаговый разбор",
     "## Формальное правило",
     "## Типичные ошибки",
     "## Задача A — по образцу",
-    "## Задача B — перенос на новый пример",
-    "## Проверка на выходе",
+    "## Самостоятельная задача",
+    "## Проверь себя",
+    "## Как это устроено в промышленном компиляторе",
 ]
 
+OBSOLETE_SECTIONS = [
+    "## Первая модель",
+    "## Разобранный пример: состояние за состоянием",
+    "## Задача B — перенос на новый пример",
+    "## Проверка на выходе",
+    "## Профессиональная граница",
+]
+
+FORBIDDEN_EDITORIAL_PHRASES = [
+    "prerequisite bridges",
+    "worked trace",
+    "transfer example",
+    "cleanup pipeline",
+    "legality matrix",
+    "preheader repair",
+    "name, type and effect analysis",
+    "cfg rewrite",
+    "loop pipeline",
+    "optional extension",
+    "production implementation",
+    "middle-end foundations",
+    "human/json",
+    "inner-loop child of outer-loop",
+]
+
+ALLOWED_ENGLISH_WORDS = {
+    "AST",
+    "BFS",
+    "CFG",
+    "CIL",
+    "DCE",
+    "DF",
+    "DFS",
+    "GitHub",
+    "IDom",
+    "IR",
+    "JSON",
+    "LCSSA",
+    "LICM",
+    "LLVM",
+    "LVN",
+    "MemorySSA",
+    "MkDocs",
+    "NaN",
+    "Python",
+    "SCC",
+    "SCCP",
+    "SSA",
+    "UCE",
+}
+
 LINK_RE = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
-TERM_ROW_RE = re.compile(r"^\| \*\*(.+?)\*\* \| (.+?) \| (.+?) \|$")
+TERM_ROW_RE = re.compile(
+    r"^\| \*\*(.+?)\*\*(?: \(\*.+?\*\))? \| (.+?) \| (.+?) \|$"
+)
+ENGLISH_WORD_RE = re.compile(r"(?<![А-Яа-яЁё])([A-Za-z][A-Za-z-]*)(?![А-Яа-яЁё])")
+WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё0-9-]+")
 
 
 def fail(errors: list[str], message: str) -> None:
@@ -65,6 +122,62 @@ def check_link(path: Path, raw_target: str, errors: list[str]) -> None:
         fail(errors, f"{path.relative_to(ROOT)}: broken link: {raw_target}")
 
 
+def iter_prose_lines(text: str) -> Iterator[tuple[int, str]]:
+    """Yield prose lines, excluding code, term tables, links and English aliases."""
+
+    in_code = False
+    for line_number, raw_line in enumerate(text.splitlines(), start=1):
+        stripped = raw_line.strip()
+        if stripped.startswith("```"):
+            in_code = not in_code
+            continue
+        if in_code or stripped.startswith("|"):
+            continue
+        if re.fullmatch(r"</?(?:details|summary)>.*", stripped):
+            continue
+
+        line = re.sub(r"<[^>]+>", "", raw_line)
+        line = re.sub(r"`[^`]*`", "", line)
+        line = re.sub(r"https?://\S+", "", line)
+        line = re.sub(r"\[[^\]]+\]\([^)]*\)", "", line)
+        # English aliases are allowed once, immediately after a Russian term.
+        line = re.sub(r"\([^)]*[A-Za-z][^)]*\)", "", line)
+        if line.strip():
+            yield line_number, line
+
+
+def check_editorial_style(path: Path, text: str, errors: list[str]) -> None:
+    for line_number, line in iter_prose_lines(text):
+        lowered = line.casefold()
+        for phrase in FORBIDDEN_EDITORIAL_PHRASES:
+            if phrase in lowered:
+                fail(
+                    errors,
+                    f"{path.name}:{line_number}: mixed-language phrase remains: {phrase!r}",
+                )
+
+        english_words = [
+            word
+            for word in ENGLISH_WORD_RE.findall(line)
+            if word not in ALLOWED_ENGLISH_WORDS
+            and not (len(word) <= 4 and word.isupper())
+        ]
+        if len(english_words) >= 4:
+            fail(
+                errors,
+                f"{path.name}:{line_number}: too many unexplained English words "
+                f"in prose: {english_words}",
+            )
+
+        word_count = len(WORD_RE.findall(line))
+        if word_count > 55:
+            fail(
+                errors,
+                f"{path.name}:{line_number}: sentence/paragraph is too dense "
+                f"({word_count} words)",
+            )
+
+
 def validate_module(path: Path, errors: list[str]) -> None:
     text = path.read_text(encoding="utf-8")
     for section in REQUIRED_SECTIONS:
@@ -74,6 +187,10 @@ def validate_module(path: Path, errors: list[str]) -> None:
     positions = [text.find(section) for section in REQUIRED_SECTIONS]
     if positions != sorted(positions):
         fail(errors, f"{path.name}: required teaching sections are out of order")
+
+    for section in OBSOLETE_SECTIONS:
+        if section in text:
+            fail(errors, f"{path.name}: obsolete editorial heading remains: {section!r}")
 
     if "<table" in text.lower() or "<tbody" in text.lower():
         fail(errors, f"{path.name}: conversion HTML table remains")
@@ -93,9 +210,11 @@ def validate_module(path: Path, errors: list[str]) -> None:
             fail(errors, f"{path.name}: empty term definition for {match.group(1)!r}")
 
     if text.count("<details>") < 3:
-        fail(errors, f"{path.name}: task/exit answers are not locally available")
+        fail(errors, f"{path.name}: task/self-check answers are not locally available")
     if "Моя формулировка одним предложением" in text:
         fail(errors, f"{path.name}: empty self-definition table returned")
+
+    check_editorial_style(path, text, errors)
 
     for link in LINK_RE.findall(text):
         check_link(path, link, errors)
@@ -116,15 +235,28 @@ def main() -> int:
         for link in LINK_RE.findall(text):
             check_link(path, link, errors)
 
+    for path in [ROOT / "README.md", DOCS / "index.md", DOCS / "course-map.md"]:
+        check_editorial_style(path, path.read_text(encoding="utf-8"), errors)
+
     glossary = (DOCS / "resources" / "glossary.md").read_text(encoding="utf-8")
     if "см. точное определение" in glossary.lower():
         fail(errors, "glossary contains placeholder definitions")
-    glossary_terms = len(re.findall(r"^\| \*\*.+?\*\* \|", glossary, flags=re.MULTILINE))
-    if glossary_terms < 100:
-        fail(errors, f"glossary is incomplete: only {glossary_terms} terms")
+    glossary_names = re.findall(
+        r"^\| \*\*(.+?)\*\*", glossary, flags=re.MULTILINE
+    )
+    glossary_terms = len(glossary_names)
+    if glossary_terms != 100:
+        fail(errors, f"glossary must contain exactly 100 rows, got {glossary_terms}")
+    if len(set(glossary_names)) != glossary_terms:
+        fail(errors, "glossary contains duplicate Russian term names")
 
     prerequisite = (DOCS / "prerequisites.md").read_text(encoding="utf-8")
-    for phrase in ["Binding, storage и value", "DFS", "SCC", "Loop-carried dependence"]:
+    for phrase in [
+        "Привязка имени, хранилище и значение",
+        "DFS",
+        "SCC",
+        "Межитерационная зависимость",
+    ]:
         if phrase not in prerequisite:
             fail(errors, f"prerequisites missing {phrase!r}")
 
@@ -153,7 +285,7 @@ def main() -> int:
         "который я дам в нашей сессии",
         "Финальный занятие",
         "Последний занятие",
-        "Name, type and effect analysis]",  # untranslated diagram label
+        "Name, type and effect analysis]",
     ]
     all_active = "\n".join(
         (MODULES / name).read_text(encoding="utf-8") for name in EXPECTED_MODULES
@@ -170,7 +302,8 @@ def main() -> int:
 
     print(
         f"Course validation passed: {len(EXPECTED_MODULES)} modules, "
-        f"{glossary_terms} glossary terms, local answers and prerequisite checks."
+        f"{glossary_terms} glossary terms, local answers, prerequisite and "
+        "readability checks."
     )
     return 0
 
