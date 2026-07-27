@@ -35,8 +35,27 @@ jobs:
             echo "Bundle parts already consumed; nothing to apply."
             exit 0
           fi
-          cat "${parts[@]}" | tr -d '\r\n' | base64 --decode > /tmp/course-v2.tar.gz
-          gzip -t /tmp/course-v2.tar.gz
+
+          rm -f /tmp/course-v2.tar.gz /tmp/course-v2.chunk.*
+
+          # First try a bundle split after base64 encoding.
+          if cat "${parts[@]}" | tr -d '\r\n' | base64 --decode > /tmp/course-v2.tar.gz 2>/tmp/base64-stream.err \
+             && gzip -t /tmp/course-v2.tar.gz 2>/tmp/gzip-stream.err; then
+            echo "Reconstructed bundle from one base64 stream."
+          else
+            echo "Single-stream reconstruction failed; trying independently encoded parts."
+            : > /tmp/course-v2.tar.gz
+            index=0
+            for part in "${parts[@]}"; do
+              chunk="/tmp/course-v2.chunk.$index"
+              tr -d '\r\n' < "$part" | base64 --decode > "$chunk"
+              cat "$chunk" >> /tmp/course-v2.tar.gz
+              index=$((index + 1))
+            done
+            gzip -t /tmp/course-v2.tar.gz
+            echo "Reconstructed bundle from independently encoded parts."
+          fi
+
           sha256sum /tmp/course-v2.tar.gz
           python - <<'PY'
           from pathlib import Path
