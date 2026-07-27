@@ -26,6 +26,7 @@ jobs:
           fetch-depth: 0
 
       - name: Reconstruct and safely extract bundle
+        id: reconstruct
         shell: bash
         run: |
           set -euo pipefail
@@ -36,7 +37,7 @@ jobs:
             exit 0
           fi
 
-          rm -f /tmp/course-v2.tar.gz /tmp/course-v2.chunk.*
+          rm -f /tmp/course-v2.tar.gz /tmp/course-v2.chunk.* /tmp/*.err
 
           # First try a bundle split after base64 encoding.
           if cat "${parts[@]}" | tr -d '\r\n' | base64 --decode > /tmp/course-v2.tar.gz 2>/tmp/base64-stream.err \
@@ -48,11 +49,14 @@ jobs:
             index=0
             for part in "${parts[@]}"; do
               chunk="/tmp/course-v2.chunk.$index"
-              tr -d '\r\n' < "$part" | base64 --decode > "$chunk"
+              if ! tr -d '\r\n' < "$part" | base64 --decode > "$chunk" 2>"/tmp/base64-part-$index.err"; then
+                echo "Failed to decode $part" >&2
+                exit 41
+              fi
               cat "$chunk" >> /tmp/course-v2.tar.gz
               index=$((index + 1))
             done
-            gzip -t /tmp/course-v2.tar.gz
+            gzip -t /tmp/course-v2.tar.gz 2>/tmp/gzip-parts.err
             echo "Reconstructed bundle from independently encoded parts."
           fi
 
@@ -78,6 +82,61 @@ jobs:
           PY
           rm -f .remediation/course-v2.part*
           rmdir .remediation 2>/dev/null || true
+
+      - name: Persist reconstruction diagnostics
+        if: failure() && steps.reconstruct.outcome == 'failure'
+        shell: bash
+        run: |
+          set -u
+          mkdir -p .remediation
+          {
+            echo "# Course v2 reconstruction diagnostic"
+            echo
+            echo "## Part inventory"
+            for part in .remediation/course-v2.part*; do
+              [ -e "$part" ] || continue
+              bytes=$(wc -c < "$part")
+              chars=$(tr -d '\r\n' < "$part" | wc -c)
+              prefix=$(head -c 24 "$part")
+              suffix=$(tail -c 24 "$part")
+              printf '%s bytes=%s compact_chars=%s prefix=%q suffix=%q\n' "$part" "$bytes" "$chars" "$prefix" "$suffix"
+            done
+            echo
+            echo "## Combined-stream errors"
+            for f in /tmp/base64-stream.err /tmp/gzip-stream.err; do
+              echo "### $f"
+              cat "$f" 2>/dev/null || true
+            done
+            echo
+            echo "## Per-part decode"
+            index=0
+            : > /tmp/diagnostic-concatenated.bin
+            for part in .remediation/course-v2.part*; do
+              [ -e "$part" ] || continue
+              chunk="/tmp/diagnostic-part-$index.bin"
+              if tr -d '\r\n' < "$part" | base64 --decode > "$chunk" 2>"/tmp/diagnostic-part-$index.err"; then
+                printf '%s decoded_bytes=%s first_hex=' "$part" "$(wc -c < "$chunk")"
+                od -An -tx1 -N8 "$chunk" | tr -d ' \n'
+                echo
+                cat "$chunk" >> /tmp/diagnostic-concatenated.bin
+              else
+                echo "$part decode_failed"
+                cat "/tmp/diagnostic-part-$index.err"
+              fi
+              index=$((index + 1))
+            done
+            echo
+            echo "## Concatenated binary"
+            file /tmp/diagnostic-concatenated.bin 2>/dev/null || true
+            gzip -t /tmp/diagnostic-concatenated.bin 2>&1 || true
+            printf 'bytes=%s\n' "$(wc -c < /tmp/diagnostic-concatenated.bin 2>/dev/null || echo 0)"
+          } > .remediation/diagnostic.md
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .remediation/diagnostic.md
+          git commit -m "chore: record course bundle reconstruction diagnostic" || true
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Install package and documentation dependencies
         run: |
