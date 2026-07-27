@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "middle-end-compiler-course"
-version = "0.1.0"
-description = "Teaching utilities for a middle-end compiler course"
+version = "0.2.0"
+description = "Teaching utilities for a self-contained middle-end compiler course"
 requires-python = ">=3.11"
 authors = [{name = "Mikhail Razakov"}]
 license = {text = "MIT"}
