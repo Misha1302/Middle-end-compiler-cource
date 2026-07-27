@@ -20,19 +20,20 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Verify stored bundle chunks
-        shell: bash
+      - name: Verify part 00
         run: |
-          set -euo pipefail
           test "$(wc -c < .polish/part00)" -eq 9000
-          test "$(wc -c < .polish/part01)" -eq 9000
-          test "$(wc -c < .polish/part02)" -eq 16736
           echo "85743b7d5142c5d608f70eb3e60665f00fe3d53751a0b119136b86b5856cf79a  .polish/part00" | sha256sum -c -
+      - name: Verify part 01
+        run: |
+          test "$(wc -c < .polish/part01)" -eq 9000
           echo "f15f1865bf7a7138088bf6e1a2333834dc67ed2fe2a05a61e0ea69310fa92a87  .polish/part01" | sha256sum -c -
+      - name: Verify combined tail
+        run: |
+          test "$(wc -c < .polish/part02)" -eq 16736
           echo "f3a361a98b553b6a24e05ec0c01f3c943b2e4ca8e56437090d6a74c5e269349f  .polish/part02" | sha256sum -c -
 
       - name: Reconstruct and verify bundle
-        shell: bash
         run: |
           set -euo pipefail
           cat .polish/part00 .polish/part01 .polish/part02 | base64 --decode > /tmp/final-polish.tar.gz
@@ -40,25 +41,12 @@ jobs:
           gzip -t /tmp/final-polish.tar.gz
 
       - name: Extract allowlisted files
-        shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
           import tarfile
-
-          allowed = {
-              'README.md',
-              'docs/modules/05-idom-tree-and-df.md',
-              'docs/modules/12-checkpoint-1.md',
-              'docs/modules/14-havlak-and-loop-tree.md',
-              'docs/modules/19-mock-exam-1.md',
-              'docs/modules/20-final-repair.md',
-              'docs/course-map.md',
-              'docs/practice/transfer-bank.md',
-              'docs/resources/glossary.md',
-              'docs/resources/flashcards.md',
-          }
+          allowed = {'README.md','docs/modules/05-idom-tree-and-df.md','docs/modules/12-checkpoint-1.md','docs/modules/14-havlak-and-loop-tree.md','docs/modules/19-mock-exam-1.md','docs/modules/20-final-repair.md','docs/course-map.md','docs/practice/transfer-bank.md','docs/resources/glossary.md','docs/resources/flashcards.md'}
           root = Path.cwd().resolve()
           with tarfile.open('/tmp/final-polish.tar.gz', 'r:gz') as tf:
               members = tf.getmembers()
@@ -70,10 +58,8 @@ jobs:
                   if name in {'', '.'}:
                       continue
                   destination = (root / name).resolve()
-                  if root not in destination.parents:
-                      raise SystemExit(f'unsafe path: {member.name!r}')
-                  if member.issym() or member.islnk():
-                      raise SystemExit(f'links forbidden: {member.name!r}')
+                  if root not in destination.parents or member.issym() or member.islnk():
+                      raise SystemExit(f'unsafe member: {member.name!r}')
               tf.extractall(root, filter='data')
           PY
           rm -rf .polish
@@ -83,16 +69,13 @@ jobs:
           python -m pip install --upgrade pip setuptools
           python -m pip install -e .
           python -m pip install -r requirements-docs.txt
-
       - name: Validate and test
         run: |
           python scripts/validate_course.py
           python -m unittest discover -s tests -v
           python -m compileall -q src scripts tests
           mkdocs build --strict --site-dir site
-
       - name: Commit verified polish
-        shell: bash
         run: |
           set -euo pipefail
           rm -rf site
