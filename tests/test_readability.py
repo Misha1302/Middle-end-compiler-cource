@@ -25,6 +25,27 @@ class ReadabilityCheckTests(unittest.TestCase):
         self.assertEqual("long sentence", findings[0].kind)
         self.assertEqual(37, findings[0].value)
 
+    def test_reports_long_numbered_item(self) -> None:
+        words = " ".join(f"слово{index}" for index in range(37))
+        path = self.write_markdown(f"1. {words}.\n")
+
+        findings = analyze_file(path)
+
+        self.assertEqual(1, len(findings))
+        self.assertEqual("long sentence", findings[0].kind)
+
+    def test_reports_inflected_abstract_terms(self) -> None:
+        path = self.write_markdown(
+            "Анализы алгоритма требуют доказательства допустимости "
+            "преобразования и проверки инварианта.\n"
+        )
+
+        findings = analyze_file(path)
+
+        self.assertEqual(1, len(findings))
+        self.assertEqual("abstract-term density", findings[0].kind)
+        self.assertEqual(6, findings[0].value)
+
     def test_ignores_code_and_tables(self) -> None:
         words = " ".join(f"word{index}" for index in range(50))
         path = self.write_markdown(
