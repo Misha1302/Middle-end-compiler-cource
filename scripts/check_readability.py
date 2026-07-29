@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 
-# These pages form the entry path or contain the densest explanations.  They
+# These pages form the entry path or contain the densest explanations. They
 # use a hard limit; the rest of the course is reported so it can be improved
 # gradually without blocking unrelated changes.
 STRICT_FILES = {
@@ -21,21 +21,22 @@ STRICT_FILES = {
 
 WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё0-9]+(?:[-–—][A-Za-zА-Яа-яЁё0-9]+)*")
 SENTENCE_END_RE = re.compile(r"(?<=[.!?])\s+")
-ABSTRACT_WORDS = {
+LIST_PREFIX_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
+ABSTRACT_STEMS = (
     "анализ",
     "алгоритм",
-    "доказательство",
-    "допустимость",
+    "доказ",
+    "допустим",
     "инвариант",
     "контракт",
-    "область",
-    "оптимизация",
-    "представитель",
-    "преобразование",
-    "реализация",
-    "семантика",
-    "состояние",
-}
+    "област",
+    "оптимизац",
+    "представител",
+    "преобразован",
+    "реализац",
+    "семантик",
+    "состояни",
+)
 
 
 @dataclass(frozen=True)
@@ -58,12 +59,12 @@ def iter_prose_lines(path: Path) -> list[tuple[int, str]]:
             continue
         if in_code or not stripped:
             continue
-        if stripped.startswith(("|", "#", "<", "- ", "* ")):
-            continue
-        if re.match(r"^\d+[.)]\s", stripped):
+        if stripped.startswith(("|", "#", "<")):
             continue
 
-        line = re.sub(r"`[^`]*`", " термин ", raw_line)
+        line = LIST_PREFIX_RE.sub("", raw_line)
+        line = re.sub(r"^\s*>\s?", "", line)
+        line = re.sub(r"`[^`]*`", " термин ", line)
         line = re.sub(r"\[([^]]+)]\([^)]*\)", r"\1", line)
         line = re.sub(r"<[^>]+>", "", line)
         line = re.sub(r"\*\*|__|\*|_", "", line)
@@ -71,6 +72,11 @@ def iter_prose_lines(path: Path) -> list[tuple[int, str]]:
             lines.append((line_number, line.strip()))
 
     return lines
+
+
+def abstract_stem_count(words: list[str]) -> int:
+    lowered = {word.casefold() for word in words}
+    return sum(any(word.startswith(stem) for word in lowered) for stem in ABSTRACT_STEMS)
 
 
 def analyze_file(path: Path) -> list[Finding]:
@@ -88,8 +94,7 @@ def analyze_file(path: Path) -> list[Finding]:
                     Finding(path, line_number, "long sentence", len(words), sentence)
                 )
 
-            lowered = {word.casefold() for word in words}
-            abstract_count = len(lowered & ABSTRACT_WORDS)
+            abstract_count = abstract_stem_count(words)
             if abstract_count >= 6:
                 findings.append(
                     Finding(
