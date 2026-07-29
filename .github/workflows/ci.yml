@@ -27,6 +27,8 @@ jobs:
           python -m pip install -e .
       - name: Validate course structure and links
         run: python scripts/validate_course.py
+      - name: Check readability of high-impact pages
+        run: python scripts/check_readability.py --strict
       - name: Validate audited content contracts
         run: python scripts/validate_content_contracts.py
       - name: Validate semantic golden examples
