@@ -47,7 +47,7 @@ nav:
       - "11. Inlining": modules/11-inlining.md
       - "12. Комплексная работа №1": modules/12-checkpoint-1.md
       - "13. Циклы в CFG": modules/13-loop-concepts.md
-      - "14. Хавлак и дерево циклов": modules/14-havlak-and-loop-tree.md
+      - "14. Идея Хавлака и дерево циклов": modules/14-havlak-and-loop-tree.md
       - "15. Индуктивные переменные": modules/15-induction-variables.md
       - "16. LICM": modules/16-licm.md
       - "17. Loop transformations": modules/17-loop-transformations.md
