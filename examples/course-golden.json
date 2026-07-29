@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "examples": [
+    {
+      "id": "checkpoint-1",
+      "entry": "B0",
+      "edges": [["B0", "B1"], ["B0", "B2"], ["B1", "B3"], ["B2", "B3"]],
+      "dominators": {
+        "B0": ["B0"],
+        "B1": ["B0", "B1"],
+        "B2": ["B0", "B2"],
+        "B3": ["B0", "B3"]
+      },
+      "idom": {"B1": "B0", "B2": "B0", "B3": "B0"},
+      "frontier": {"B0": [], "B1": ["B3"], "B2": ["B3"], "B3": []}
+    },
+    {
+      "id": "checkpoint-2",
+      "entry": "PRE",
+      "edges": [["PRE", "H"], ["H", "BODY"], ["H", "EXIT"], ["BODY", "L"], ["L", "H"]],
+      "dominators": {
+        "PRE": ["PRE"],
+        "H": ["H", "PRE"],
+        "BODY": ["BODY", "H", "PRE"],
+        "L": ["BODY", "H", "L", "PRE"],
+        "EXIT": ["EXIT", "H", "PRE"]
+      },
+      "idom": {"H": "PRE", "BODY": "H", "L": "BODY", "EXIT": "H"},
+      "frontier": {"PRE": [], "H": ["H"], "BODY": ["H"], "L": ["H"], "EXIT": []}
+    },
+    {
+      "id": "mock-exam-1",
+      "entry": "PRE",
+      "edges": [["PRE", "H"], ["H", "TEST"], ["H", "EXIT"], ["TEST", "USE"], ["TEST", "SKIP"], ["USE", "CONT"], ["SKIP", "CONT"], ["CONT", "H"]],
+      "dominators": {
+        "PRE": ["PRE"],
+        "H": ["H", "PRE"],
+        "TEST": ["H", "PRE", "TEST"],
+        "USE": ["H", "PRE", "TEST", "USE"],
+        "SKIP": ["H", "PRE", "SKIP", "TEST"],
+        "CONT": ["CONT", "H", "PRE", "TEST"],
+        "EXIT": ["EXIT", "H", "PRE"]
+      },
+      "idom": {"H": "PRE", "TEST": "H", "USE": "TEST", "SKIP": "TEST", "CONT": "TEST", "EXIT": "H"},
+      "frontier": {"PRE": [], "H": ["H"], "TEST": ["H"], "USE": ["CONT"], "SKIP": ["CONT"], "CONT": ["H"], "EXIT": []}
+    },
+    {
+      "id": "mock-exam-2",
+      "entry": "PRE",
+      "edges": [["PRE", "H"], ["H", "TEST"], ["H", "EXIT"], ["TEST", "USE"], ["TEST", "SKIP"], ["USE", "CONT"], ["SKIP", "CONT"], ["CONT", "H"]],
+      "dominators": {
+        "PRE": ["PRE"],
+        "H": ["H", "PRE"],
+        "TEST": ["H", "PRE", "TEST"],
+        "USE": ["H", "PRE", "TEST", "USE"],
+        "SKIP": ["H", "PRE", "SKIP", "TEST"],
+        "CONT": ["CONT", "H", "PRE", "TEST"],
+        "EXIT": ["EXIT", "H", "PRE"]
+      },
+      "idom": {"H": "PRE", "TEST": "H", "USE": "TEST", "SKIP": "TEST", "CONT": "TEST", "EXIT": "H"},
+      "frontier": {"PRE": [], "H": ["H"], "TEST": ["H"], "USE": ["CONT"], "SKIP": ["CONT"], "CONT": ["H"], "EXIT": []}
+    }
+  ]
+}
