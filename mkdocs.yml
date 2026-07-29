@@ -38,7 +38,7 @@ nav:
       - "2. Лидеры и базовые блоки": modules/02-leaders-and-basic-blocks.md
       - "3. CFG и достижимость": modules/03-building-cfg.md
       - "4. Доминирование": modules/04-dominators.md
-      - "5. IDom, дерево и DF": modules/05-idom-tree-and-df.md
+      - "5. idom, дерево и DF": modules/05-idom-tree-and-df.md
       - "6. SSA и φ-функции": modules/06-ssa-and-phi.md
       - "7. SSA-renaming и verifier": modules/07-ssa-renaming.md
       - "8. Def-use и LVN": modules/08-dependencies-and-lvn.md
@@ -61,6 +61,7 @@ nav:
   - Ресурсы:
       - Словарь: resources/glossary.md
       - Карточки: resources/flashcards.md
+      - Модели ревью: resources/review-models.md
   - Источники: references.md
   - Происхождение материалов: source-materials.md
   - Статус курса: course-status.md
